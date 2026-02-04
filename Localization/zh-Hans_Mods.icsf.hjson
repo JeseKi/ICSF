@@ -1,0 +1,16 @@
+Items: {
+	HitboxControllerItem: {
+		DisplayName: 碰撞箱控制器
+		Tooltip: 在背包中右键此物品，或使用它来打开碰撞箱设置。
+	}
+}
+
+UI: {
+	HitboxOverlayTitle: 碰撞箱显示
+	HostileNpc: 敌对 NPC
+	HostileProjectile: 敌对投射物
+	Player: 玩家
+	ToggleOn: 开
+	ToggleOff: 关
+	Close: 关闭
+}

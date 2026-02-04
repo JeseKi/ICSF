@@ -1,1 +1,16 @@
+Items: {
+	HitboxControllerItem: {
+		DisplayName: Hitbox Controller
+		Tooltip: Right-click this item in your inventory or use it to open hitbox settings.
+	}
+}
 
+UI: {
+	HitboxOverlayTitle: Hitbox Overlay
+	HostileNpc: Hostile NPC
+	HostileProjectile: Hostile Projectile
+	Player: Player
+	ToggleOn: ON
+	ToggleOff: OFF
+	Close: Close
+}

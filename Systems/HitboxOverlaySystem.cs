@@ -9,6 +9,9 @@ namespace icsf.Systems;
 public class HitboxOverlaySystem : ModSystem
 {
 	private const int LineThicknessInScreenPixels = 2;
+	public static bool ShowHostileNpcHitboxes { get; set; } = true;
+	public static bool ShowHostileProjectileHitboxes { get; set; } = true;
+	public static bool ShowPlayerHitbox { get; set; } = true;
 
 	public override void PostDrawInterface(SpriteBatch spriteBatch)
 	{
@@ -16,9 +19,17 @@ public class HitboxOverlaySystem : ModSystem
 			return;
 		}
 
-		DrawEnemyNpcHitboxes(spriteBatch);
-		DrawHostileProjectileHitboxes(spriteBatch);
-		DrawLocalPlayerHitbox(spriteBatch);
+		if (ShowHostileNpcHitboxes) {
+			DrawEnemyNpcHitboxes(spriteBatch);
+		}
+
+		if (ShowHostileProjectileHitboxes) {
+			DrawHostileProjectileHitboxes(spriteBatch);
+		}
+
+		if (ShowPlayerHitbox) {
+			DrawLocalPlayerHitbox(spriteBatch);
+		}
 	}
 
 	private static void DrawEnemyNpcHitboxes(SpriteBatch spriteBatch)
