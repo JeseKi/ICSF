@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace icsf.Systems;
@@ -11,8 +12,12 @@ public class HitboxOverlaySystem : ModSystem
 	public static readonly Color DefaultHostileNpcHitboxColor = Color.IndianRed;
 	public static readonly Color DefaultHostileProjectileHitboxColor = Color.OrangeRed;
 	public static readonly Color DefaultPlayerHitboxColor = Color.LimeGreen;
-	public const int DefaultLineThicknessInScreenPixels = 2;
-	public const bool DefaultFillRectangles = false;
+	public const int DefaultHostileNpcLineThicknessInScreenPixels = 2;
+	public const int DefaultHostileProjectileLineThicknessInScreenPixels = 2;
+	public const int DefaultPlayerLineThicknessInScreenPixels = 2;
+	public const bool DefaultHostileNpcFillRectangles = false;
+	public const bool DefaultHostileProjectileFillRectangles = false;
+	public const bool DefaultPlayerFillRectangles = false;
 
 	public static bool ShowHostileNpcHitboxes { get; set; } = true;
 	public static bool ShowHostileProjectileHitboxes { get; set; } = true;
@@ -20,8 +25,12 @@ public class HitboxOverlaySystem : ModSystem
 	public static Color HostileNpcHitboxColor { get; set; } = DefaultHostileNpcHitboxColor;
 	public static Color HostileProjectileHitboxColor { get; set; } = DefaultHostileProjectileHitboxColor;
 	public static Color PlayerHitboxColor { get; set; } = DefaultPlayerHitboxColor;
-	public static int LineThicknessInScreenPixels { get; set; } = DefaultLineThicknessInScreenPixels;
-	public static bool FillRectangles { get; set; } = DefaultFillRectangles;
+	public static int HostileNpcLineThicknessInScreenPixels { get; set; } = DefaultHostileNpcLineThicknessInScreenPixels;
+	public static int HostileProjectileLineThicknessInScreenPixels { get; set; } = DefaultHostileProjectileLineThicknessInScreenPixels;
+	public static int PlayerLineThicknessInScreenPixels { get; set; } = DefaultPlayerLineThicknessInScreenPixels;
+	public static bool HostileNpcFillRectangles { get; set; } = DefaultHostileNpcFillRectangles;
+	public static bool HostileProjectileFillRectangles { get; set; } = DefaultHostileProjectileFillRectangles;
+	public static bool PlayerFillRectangles { get; set; } = DefaultPlayerFillRectangles;
 
 	public override void PostDrawInterface(SpriteBatch spriteBatch)
 	{
@@ -47,19 +56,29 @@ public class HitboxOverlaySystem : ModSystem
 		HostileNpcHitboxColor = DefaultHostileNpcHitboxColor;
 		HostileProjectileHitboxColor = DefaultHostileProjectileHitboxColor;
 		PlayerHitboxColor = DefaultPlayerHitboxColor;
-		LineThicknessInScreenPixels = DefaultLineThicknessInScreenPixels;
-		FillRectangles = DefaultFillRectangles;
+		HostileNpcLineThicknessInScreenPixels = DefaultHostileNpcLineThicknessInScreenPixels;
+		HostileProjectileLineThicknessInScreenPixels = DefaultHostileProjectileLineThicknessInScreenPixels;
+		PlayerLineThicknessInScreenPixels = DefaultPlayerLineThicknessInScreenPixels;
+		HostileNpcFillRectangles = DefaultHostileNpcFillRectangles;
+		HostileProjectileFillRectangles = DefaultHostileProjectileFillRectangles;
+		PlayerFillRectangles = DefaultPlayerFillRectangles;
 	}
 
 	private static void DrawEnemyNpcHitboxes(SpriteBatch spriteBatch)
 	{
 		for (int i = 0; i < Main.maxNPCs; i++) {
 			NPC npc = Main.npc[i];
-			if (!npc.active || !npc.CanBeChasedBy()) {
+			if (!IsHostileNpcTarget(npc)) {
 				continue;
 			}
 
-			DrawWorldRectangle(spriteBatch, npc.Hitbox, HostileNpcHitboxColor);
+			DrawWorldRectangle(
+				spriteBatch,
+				npc.Hitbox,
+				HostileNpcHitboxColor,
+				HostileNpcLineThicknessInScreenPixels,
+				HostileNpcFillRectangles
+			);
 		}
 	}
 
@@ -71,7 +90,13 @@ public class HitboxOverlaySystem : ModSystem
 				continue;
 			}
 
-			DrawWorldRectangle(spriteBatch, projectile.Hitbox, HostileProjectileHitboxColor);
+			DrawWorldRectangle(
+				spriteBatch,
+				projectile.Hitbox,
+				HostileProjectileHitboxColor,
+				HostileProjectileLineThicknessInScreenPixels,
+				HostileProjectileFillRectangles
+			);
 		}
 	}
 
@@ -82,10 +107,56 @@ public class HitboxOverlaySystem : ModSystem
 			return;
 		}
 
-		DrawWorldRectangle(spriteBatch, player.Hitbox, PlayerHitboxColor);
+		DrawWorldRectangle(
+			spriteBatch,
+			player.Hitbox,
+			PlayerHitboxColor,
+			PlayerLineThicknessInScreenPixels,
+			PlayerFillRectangles
+		);
 	}
 
-	private static void DrawWorldRectangle(SpriteBatch spriteBatch, Rectangle worldRectangle, Color color)
+	private static bool IsHostileNpcTarget(NPC npc)
+	{
+		if (!npc.active || npc.friendly || npc.life <= 0) {
+			return false;
+		}
+
+		if (npc.CanBeChasedBy()) {
+			return true;
+		}
+
+		if (npc.boss || npc.rarity > 0) {
+			return true;
+		}
+
+		if (npc.realLife >= 0 && npc.realLife < Main.npc.Length) {
+			NPC root = Main.npc[npc.realLife];
+			if (root.active && (root.boss || root.rarity > 0 || root.CanBeChasedBy())) {
+				return true;
+			}
+		}
+
+		if (npc.type == NPCID.EaterofWorldsHead
+			|| npc.type == NPCID.EaterofWorldsBody
+			|| npc.type == NPCID.EaterofWorldsTail) {
+			return true;
+		}
+
+		if (!npc.friendly) {
+			return true;
+		}
+
+		return false;
+	}
+
+	private static void DrawWorldRectangle(
+		SpriteBatch spriteBatch,
+		Rectangle worldRectangle,
+		Color color,
+		int lineThicknessInScreenPixels,
+		bool fillRectangle
+	)
 	{
 		Vector2 worldTopLeft = new(worldRectangle.Left - Main.screenPosition.X, worldRectangle.Top - Main.screenPosition.Y);
 		Vector2 worldBottomRight = new(worldRectangle.Right - Main.screenPosition.X, worldRectangle.Bottom - Main.screenPosition.Y);
@@ -104,15 +175,21 @@ public class HitboxOverlaySystem : ModSystem
 		int height = System.Math.Max(1, (int)System.MathF.Round(System.MathF.Abs(screenBottomRight.Y - screenTopLeft.Y)));
 		Rectangle screenRectangle = new(left, top, width, height);
 
-		DrawRectangle(spriteBatch, screenRectangle, color);
+		DrawRectangle(spriteBatch, screenRectangle, color, lineThicknessInScreenPixels, fillRectangle);
 	}
 
-	private static void DrawRectangle(SpriteBatch spriteBatch, Rectangle rectangle, Color color)
+	private static void DrawRectangle(
+		SpriteBatch spriteBatch,
+		Rectangle rectangle,
+		Color color,
+		int lineThicknessInScreenPixels,
+		bool fillRectangle
+	)
 	{
 		Texture2D pixel = TextureAssets.MagicPixel.Value;
-		int lineThickness = System.Math.Max(1, (int)System.MathF.Round(LineThicknessInScreenPixels / Main.UIScale));
+		int lineThickness = System.Math.Max(1, (int)System.MathF.Round(lineThicknessInScreenPixels / Main.UIScale));
 
-		if (FillRectangles) {
+		if (fillRectangle) {
 			spriteBatch.Draw(pixel, rectangle, color * 0.24f);
 		}
 

@@ -28,7 +28,7 @@ public class HitboxOverlayUiState : UIState
 	private SimpleSlider _greenSlider = null!;
 	private SimpleSlider _blueSlider = null!;
 	private SimpleSlider _lineThicknessSlider = null!;
-	private ColorTarget _selectedColorTarget = ColorTarget.HostileNpc;
+	private ColorTarget _selectedEditTarget = ColorTarget.HostileNpc;
 
 	public override void OnInitialize()
 	{
@@ -76,7 +76,7 @@ public class HitboxOverlayUiState : UIState
 		changeTargetButton.HAlign = 0.5f;
 		changeTargetButton.Top.Set(188f, 0f);
 		changeTargetButton.OnLeftClick += (_, _) => {
-			_selectedColorTarget = (ColorTarget)(((int)_selectedColorTarget + 1) % 3);
+			_selectedEditTarget = (ColorTarget)(((int)_selectedEditTarget + 1) % 3);
 			SoundEngine.PlaySound(SoundID.MenuTick);
 			RefreshText();
 		};
@@ -97,19 +97,16 @@ public class HitboxOverlayUiState : UIState
 
 		AddSliderWithLabel(
 			top: 280f,
-			labelKey: "Mods.icsf.UI.Red",
 			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
 		);
 
 		AddSliderWithLabel(
 			top: 318f,
-			labelKey: "Mods.icsf.UI.Green",
 			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
 		);
 
 		AddSliderWithLabel(
 			top: 356f,
-			labelKey: "Mods.icsf.UI.Blue",
 			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
 		);
 
@@ -119,9 +116,8 @@ public class HitboxOverlayUiState : UIState
 
 		AddSliderWithLabel(
 			top: 394f,
-			labelKey: "Mods.icsf.UI.LineThickness",
-			slider: new SimpleSlider(1f, 12f, HitboxOverlaySystem.LineThicknessInScreenPixels, value => {
-				HitboxOverlaySystem.LineThicknessInScreenPixels = Math.Max(1, (int)MathF.Round(value));
+			slider: new SimpleSlider(1f, 12f, GetSelectedLineThickness(), value => {
+				SetSelectedLineThickness(Math.Max(1, (int)MathF.Round(value)));
 				RefreshText();
 			})
 		);
@@ -133,7 +129,7 @@ public class HitboxOverlayUiState : UIState
 		_fillToggleButton.Left.Set(16f, 0f);
 		_fillToggleButton.Top.Set(430f, 0f);
 		_fillToggleButton.OnLeftClick += (_, _) => {
-			HitboxOverlaySystem.FillRectangles = !HitboxOverlaySystem.FillRectangles;
+			SetSelectedFillRectangles(!GetSelectedFillRectangles());
 			SoundEngine.PlaySound(SoundID.MenuTick);
 			RefreshText();
 		};
@@ -190,7 +186,7 @@ public class HitboxOverlayUiState : UIState
 			entry.Button.SetText($"{label}: {status}");
 		}
 
-		string currentTargetText = Language.GetTextValue(GetColorTargetTextKey(_selectedColorTarget));
+		string currentTargetText = Language.GetTextValue(GetColorTargetTextKey(_selectedEditTarget));
 		_editingTargetText.SetText(Language.GetTextValue("Mods.icsf.UI.EditingTarget", currentTargetText));
 
 		Color selectedColor = GetSelectedColor();
@@ -204,10 +200,12 @@ public class HitboxOverlayUiState : UIState
 		_sliderLabelTexts[1].SetText($"{Language.GetTextValue("Mods.icsf.UI.Green")} ({selectedColor.G})");
 		_sliderLabelTexts[2].SetText($"{Language.GetTextValue("Mods.icsf.UI.Blue")} ({selectedColor.B})");
 
-		_lineThicknessSlider.SetValue(HitboxOverlaySystem.LineThicknessInScreenPixels, notify: false);
-		_sliderLabelTexts[3].SetText($"{Language.GetTextValue("Mods.icsf.UI.LineThickness")} ({HitboxOverlaySystem.LineThicknessInScreenPixels})");
+		int selectedLineThickness = GetSelectedLineThickness();
+		_lineThicknessSlider.SetValue(selectedLineThickness, notify: false);
+		_sliderLabelTexts[3].SetText($"{Language.GetTextValue("Mods.icsf.UI.LineThickness")} ({selectedLineThickness})");
 
-		string fillStatus = HitboxOverlaySystem.FillRectangles ? Language.GetTextValue("Mods.icsf.UI.ToggleOn") : Language.GetTextValue("Mods.icsf.UI.ToggleOff");
+		bool selectedFillRectangles = GetSelectedFillRectangles();
+		string fillStatus = selectedFillRectangles ? Language.GetTextValue("Mods.icsf.UI.ToggleOn") : Language.GetTextValue("Mods.icsf.UI.ToggleOff");
 		_fillToggleButton.SetText($"{Language.GetTextValue("Mods.icsf.UI.FilledRectangle")}: {fillStatus}");
 		_resetButton.SetText(Language.GetTextValue("Mods.icsf.UI.ResetVisualDefaults"));
 	}
@@ -229,7 +227,7 @@ public class HitboxOverlayUiState : UIState
 		_toggleEntries.Add(new ToggleEntry(button, labelKey, getter, true));
 	}
 
-	private void AddSliderWithLabel(float top, string labelKey, SimpleSlider slider)
+	private void AddSliderWithLabel(float top, SimpleSlider slider)
 	{
 		UIText label = new(string.Empty, 0.8f);
 		label.Left.Set(16f, 0f);
@@ -258,7 +256,7 @@ public class HitboxOverlayUiState : UIState
 
 	private Color GetSelectedColor()
 	{
-		return _selectedColorTarget switch {
+		return _selectedEditTarget switch {
 			ColorTarget.HostileNpc => HitboxOverlaySystem.HostileNpcHitboxColor,
 			ColorTarget.HostileProjectile => HitboxOverlaySystem.HostileProjectileHitboxColor,
 			ColorTarget.Player => HitboxOverlaySystem.PlayerHitboxColor,
@@ -268,7 +266,7 @@ public class HitboxOverlayUiState : UIState
 
 	private void SetSelectedColor(Color color)
 	{
-		switch (_selectedColorTarget) {
+		switch (_selectedEditTarget) {
 			case ColorTarget.HostileNpc:
 				HitboxOverlaySystem.HostileNpcHitboxColor = color;
 				break;
@@ -277,6 +275,56 @@ public class HitboxOverlayUiState : UIState
 				break;
 			case ColorTarget.Player:
 				HitboxOverlaySystem.PlayerHitboxColor = color;
+				break;
+		}
+	}
+
+	private int GetSelectedLineThickness()
+	{
+		return _selectedEditTarget switch {
+			ColorTarget.HostileNpc => HitboxOverlaySystem.HostileNpcLineThicknessInScreenPixels,
+			ColorTarget.HostileProjectile => HitboxOverlaySystem.HostileProjectileLineThicknessInScreenPixels,
+			ColorTarget.Player => HitboxOverlaySystem.PlayerLineThicknessInScreenPixels,
+			_ => HitboxOverlaySystem.HostileNpcLineThicknessInScreenPixels
+		};
+	}
+
+	private void SetSelectedLineThickness(int lineThickness)
+	{
+		switch (_selectedEditTarget) {
+			case ColorTarget.HostileNpc:
+				HitboxOverlaySystem.HostileNpcLineThicknessInScreenPixels = lineThickness;
+				break;
+			case ColorTarget.HostileProjectile:
+				HitboxOverlaySystem.HostileProjectileLineThicknessInScreenPixels = lineThickness;
+				break;
+			case ColorTarget.Player:
+				HitboxOverlaySystem.PlayerLineThicknessInScreenPixels = lineThickness;
+				break;
+		}
+	}
+
+	private bool GetSelectedFillRectangles()
+	{
+		return _selectedEditTarget switch {
+			ColorTarget.HostileNpc => HitboxOverlaySystem.HostileNpcFillRectangles,
+			ColorTarget.HostileProjectile => HitboxOverlaySystem.HostileProjectileFillRectangles,
+			ColorTarget.Player => HitboxOverlaySystem.PlayerFillRectangles,
+			_ => HitboxOverlaySystem.HostileNpcFillRectangles
+		};
+	}
+
+	private void SetSelectedFillRectangles(bool fillRectangles)
+	{
+		switch (_selectedEditTarget) {
+			case ColorTarget.HostileNpc:
+				HitboxOverlaySystem.HostileNpcFillRectangles = fillRectangles;
+				break;
+			case ColorTarget.HostileProjectile:
+				HitboxOverlaySystem.HostileProjectileFillRectangles = fillRectangles;
+				break;
+			case ColorTarget.Player:
+				HitboxOverlaySystem.PlayerFillRectangles = fillRectangles;
 				break;
 		}
 	}
