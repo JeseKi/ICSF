@@ -13,6 +13,7 @@ public class HitboxControllerItem : ModItem
 	{
 		Item.width = 20;
 		Item.height = 20;
+		Item.maxStack = 1;
 		Item.useStyle = ItemUseStyleID.HoldUp;
 		Item.useTime = 20;
 		Item.useAnimation = 20;
@@ -21,6 +22,8 @@ public class HitboxControllerItem : ModItem
 		Item.value = Item.buyPrice(silver: 50);
 		Item.consumable = false;
 	}
+
+	public override bool ConsumeItem(Player player) => false;
 
 	public override bool? UseItem(Player player)
 	{
@@ -35,6 +38,15 @@ public class HitboxControllerItem : ModItem
 
 	public override void RightClick(Player player)
 	{
+		// Some right-click flows treat right-click items as consumables; force this tool to stay.
+		if (Item.type == ItemID.None) {
+			Item.SetDefaults(Type);
+		}
+
+		if (Item.stack < 1) {
+			Item.stack = 1;
+		}
+
 		if (player.whoAmI == Main.myPlayer) {
 			HitboxOverlayUiSystem.ToggleUi();
 		}

@@ -31,11 +31,6 @@ public class HitboxOverlayUiSystem : ModSystem
 
 	public override void UpdateUI(GameTime gameTime)
 	{
-		if (UserInterface?.CurrentState is not null && !Main.playerInventory) {
-			UserInterface.SetState(null);
-			return;
-		}
-
 		UserInterface?.Update(gameTime);
 	}
 
@@ -84,7 +79,6 @@ public class HitboxOverlayUiSystem : ModSystem
 
 		UiState.RefreshText();
 		UserInterface.SetState(UiState);
-		Main.playerInventory = true;
 	}
 
 	public static void CloseUi()
