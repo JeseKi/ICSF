@@ -16,7 +16,7 @@ public class HitboxOverlayUiState : UIState
 	private readonly List<ToggleEntry> _toggleEntries = new();
 	private readonly List<UIText> _sliderLabelTexts = new();
 	private readonly List<SimpleSlider> _sliders = new();
-	private UIPanel _panel = null!;
+	private DraggableUIPanel _panel = null!;
 	private UIPanel _colorPreviewPanel = null!;
 	private UIText _title = null!;
 	private UIText _colorValueText = null!;
@@ -32,12 +32,25 @@ public class HitboxOverlayUiState : UIState
 
 	public override void OnInitialize()
 	{
-		_panel = new UIPanel();
+		_panel = new DraggableUIPanel {
+			DragAreaHeight = 44f
+		};
 		_panel.Width.Set(460f, 0f);
 		_panel.Height.Set(512f, 0f);
-		_panel.HAlign = 0.5f;
-		_panel.VAlign = 0.5f;
+		_panel.HAlign = 0f;
+		_panel.VAlign = 0f;
+		_panel.Left.Set((Main.screenWidth - 460f) * 0.5f, 0f);
+		_panel.Top.Set((Main.screenHeight - 512f) * 0.5f, 0f);
 		Append(_panel);
+
+		UIPanel dragBar = new UIPanel();
+		dragBar.Width.Set(444f, 0f);
+		dragBar.Height.Set(24f, 0f);
+		dragBar.Left.Set(8f, 0f);
+		dragBar.Top.Set(8f, 0f);
+		dragBar.BackgroundColor = new Color(43, 54, 84, 220);
+		dragBar.BorderColor = new Color(92, 109, 169, 235);
+		_panel.Append(dragBar);
 
 		_title = new UIText(string.Empty, 0.95f, true);
 		_title.HAlign = 0.5f;
