@@ -10,6 +10,15 @@ UI: {
 	HostileNpc: Hostile NPC
 	HostileProjectile: Hostile Projectile
 	Player: Player
+	EditingTarget: Editing Color: {0}
+	ChangeEditedTarget: Change Edited Target
+	ColorValue: Color R:{0} G:{1} B:{2}
+	Red: Red
+	Green: Green
+	Blue: Blue
+	LineThickness: Line Thickness
+	FilledRectangle: Filled Rectangle
+	ResetVisualDefaults: Reset Visual Settings
 	ToggleOn: ON
 	ToggleOff: OFF
 	Close: Close

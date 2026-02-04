@@ -14,50 +14,148 @@ namespace icsf.UI;
 public class HitboxOverlayUiState : UIState
 {
 	private readonly List<ToggleEntry> _toggleEntries = new();
+	private readonly List<UIText> _sliderLabelTexts = new();
+	private readonly List<SimpleSlider> _sliders = new();
 	private UIPanel _panel = null!;
+	private UIPanel _colorPreviewPanel = null!;
 	private UIText _title = null!;
+	private UIText _colorValueText = null!;
+	private UIText _editingTargetText = null!;
 	private UITextPanel<string> _closeButton = null!;
+	private UITextPanel<string> _fillToggleButton = null!;
+	private UITextPanel<string> _resetButton = null!;
+	private SimpleSlider _redSlider = null!;
+	private SimpleSlider _greenSlider = null!;
+	private SimpleSlider _blueSlider = null!;
+	private SimpleSlider _lineThicknessSlider = null!;
+	private ColorTarget _selectedColorTarget = ColorTarget.HostileNpc;
 
 	public override void OnInitialize()
 	{
 		_panel = new UIPanel();
-		_panel.Width.Set(340f, 0f);
-		_panel.Height.Set(220f, 0f);
+		_panel.Width.Set(460f, 0f);
+		_panel.Height.Set(512f, 0f);
 		_panel.HAlign = 0.5f;
 		_panel.VAlign = 0.5f;
 		Append(_panel);
 
 		_title = new UIText(string.Empty, 0.95f, true);
 		_title.HAlign = 0.5f;
-		_title.Top.Set(16f, 0f);
+		_title.Top.Set(14f, 0f);
 		_panel.Append(_title);
 
 		AddToggleButton(
-			top: 54f,
+			top: 48f,
 			labelKey: "Mods.icsf.UI.HostileNpc",
 			getter: () => HitboxOverlaySystem.ShowHostileNpcHitboxes,
 			setter: value => HitboxOverlaySystem.ShowHostileNpcHitboxes = value
 		);
 
 		AddToggleButton(
-			top: 94f,
+			top: 84f,
 			labelKey: "Mods.icsf.UI.HostileProjectile",
 			getter: () => HitboxOverlaySystem.ShowHostileProjectileHitboxes,
 			setter: value => HitboxOverlaySystem.ShowHostileProjectileHitboxes = value
 		);
 
 		AddToggleButton(
-			top: 134f,
+			top: 120f,
 			labelKey: "Mods.icsf.UI.Player",
 			getter: () => HitboxOverlaySystem.ShowPlayerHitbox,
 			setter: value => HitboxOverlaySystem.ShowPlayerHitbox = value
 		);
 
+		_editingTargetText = new UIText(string.Empty, 0.85f);
+		_editingTargetText.HAlign = 0.5f;
+		_editingTargetText.Top.Set(164f, 0f);
+		_panel.Append(_editingTargetText);
+
+		UITextPanel<string> changeTargetButton = new(string.Empty, 0.85f, false);
+		changeTargetButton.Width.Set(280f, 0f);
+		changeTargetButton.Height.Set(30f, 0f);
+		changeTargetButton.HAlign = 0.5f;
+		changeTargetButton.Top.Set(188f, 0f);
+		changeTargetButton.OnLeftClick += (_, _) => {
+			_selectedColorTarget = (ColorTarget)(((int)_selectedColorTarget + 1) % 3);
+			SoundEngine.PlaySound(SoundID.MenuTick);
+			RefreshText();
+		};
+		_panel.Append(changeTargetButton);
+		_toggleEntries.Add(new ToggleEntry(changeTargetButton, "Mods.icsf.UI.ChangeEditedTarget", () => true, false));
+
+		_colorPreviewPanel = new UIPanel();
+		_colorPreviewPanel.Width.Set(36f, 0f);
+		_colorPreviewPanel.Height.Set(36f, 0f);
+		_colorPreviewPanel.Left.Set(30f, 0f);
+		_colorPreviewPanel.Top.Set(228f, 0f);
+		_panel.Append(_colorPreviewPanel);
+
+		_colorValueText = new UIText(string.Empty, 0.85f);
+		_colorValueText.Left.Set(78f, 0f);
+		_colorValueText.Top.Set(238f, 0f);
+		_panel.Append(_colorValueText);
+
+		AddSliderWithLabel(
+			top: 280f,
+			labelKey: "Mods.icsf.UI.Red",
+			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
+		);
+
+		AddSliderWithLabel(
+			top: 318f,
+			labelKey: "Mods.icsf.UI.Green",
+			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
+		);
+
+		AddSliderWithLabel(
+			top: 356f,
+			labelKey: "Mods.icsf.UI.Blue",
+			slider: new SimpleSlider(0f, 255f, 0f, _ => ApplySelectedColorFromSliders())
+		);
+
+		_redSlider = _sliders[0];
+		_greenSlider = _sliders[1];
+		_blueSlider = _sliders[2];
+
+		AddSliderWithLabel(
+			top: 394f,
+			labelKey: "Mods.icsf.UI.LineThickness",
+			slider: new SimpleSlider(1f, 12f, HitboxOverlaySystem.LineThicknessInScreenPixels, value => {
+				HitboxOverlaySystem.LineThicknessInScreenPixels = Math.Max(1, (int)MathF.Round(value));
+				RefreshText();
+			})
+		);
+		_lineThicknessSlider = _sliders[3];
+
+		_fillToggleButton = new UITextPanel<string>(string.Empty, 0.8f, false);
+		_fillToggleButton.Width.Set(140f, 0f);
+		_fillToggleButton.Height.Set(30f, 0f);
+		_fillToggleButton.Left.Set(16f, 0f);
+		_fillToggleButton.Top.Set(430f, 0f);
+		_fillToggleButton.OnLeftClick += (_, _) => {
+			HitboxOverlaySystem.FillRectangles = !HitboxOverlaySystem.FillRectangles;
+			SoundEngine.PlaySound(SoundID.MenuTick);
+			RefreshText();
+		};
+		_panel.Append(_fillToggleButton);
+
+		_resetButton = new UITextPanel<string>(string.Empty, 0.8f, false);
+		_resetButton.Width.Set(170f, 0f);
+		_resetButton.Height.Set(30f, 0f);
+		_resetButton.Left.Set(164f, 0f);
+		_resetButton.Top.Set(430f, 0f);
+		_resetButton.OnLeftClick += (_, _) => {
+			HitboxOverlaySystem.ResetVisualSettings();
+			SoundEngine.PlaySound(SoundID.MenuOpen);
+			RefreshText();
+		};
+		_panel.Append(_resetButton);
+
 		_closeButton = new UITextPanel<string>(string.Empty, 0.85f, false);
-		_closeButton.Width.Set(140f, 0f);
-		_closeButton.Height.Set(34f, 0f);
-		_closeButton.HAlign = 0.5f;
-		_closeButton.Top.Set(176f, 0f);
+		_closeButton.Width.Set(110f, 0f);
+		_closeButton.Height.Set(30f, 0f);
+		_closeButton.Left.Set(338f, 0f);
+		_closeButton.Top.Set(430f, 0f);
 		_closeButton.OnLeftClick += (_, _) => {
 			SoundEngine.PlaySound(SoundID.MenuClose);
 			HitboxOverlayUiSystem.CloseUi();
@@ -83,16 +181,42 @@ public class HitboxOverlayUiState : UIState
 
 		foreach (ToggleEntry entry in _toggleEntries) {
 			string label = Language.GetTextValue(entry.LabelKey);
+			if (!entry.IsStatusToggle) {
+				entry.Button.SetText(label);
+				continue;
+			}
+
 			string status = entry.Getter() ? Language.GetTextValue("Mods.icsf.UI.ToggleOn") : Language.GetTextValue("Mods.icsf.UI.ToggleOff");
 			entry.Button.SetText($"{label}: {status}");
 		}
+
+		string currentTargetText = Language.GetTextValue(GetColorTargetTextKey(_selectedColorTarget));
+		_editingTargetText.SetText(Language.GetTextValue("Mods.icsf.UI.EditingTarget", currentTargetText));
+
+		Color selectedColor = GetSelectedColor();
+		_colorPreviewPanel.BackgroundColor = selectedColor;
+		_colorValueText.SetText(Language.GetTextValue("Mods.icsf.UI.ColorValue", selectedColor.R, selectedColor.G, selectedColor.B));
+		_redSlider.SetValue(selectedColor.R, notify: false);
+		_greenSlider.SetValue(selectedColor.G, notify: false);
+		_blueSlider.SetValue(selectedColor.B, notify: false);
+
+		_sliderLabelTexts[0].SetText($"{Language.GetTextValue("Mods.icsf.UI.Red")} ({selectedColor.R})");
+		_sliderLabelTexts[1].SetText($"{Language.GetTextValue("Mods.icsf.UI.Green")} ({selectedColor.G})");
+		_sliderLabelTexts[2].SetText($"{Language.GetTextValue("Mods.icsf.UI.Blue")} ({selectedColor.B})");
+
+		_lineThicknessSlider.SetValue(HitboxOverlaySystem.LineThicknessInScreenPixels, notify: false);
+		_sliderLabelTexts[3].SetText($"{Language.GetTextValue("Mods.icsf.UI.LineThickness")} ({HitboxOverlaySystem.LineThicknessInScreenPixels})");
+
+		string fillStatus = HitboxOverlaySystem.FillRectangles ? Language.GetTextValue("Mods.icsf.UI.ToggleOn") : Language.GetTextValue("Mods.icsf.UI.ToggleOff");
+		_fillToggleButton.SetText($"{Language.GetTextValue("Mods.icsf.UI.FilledRectangle")}: {fillStatus}");
+		_resetButton.SetText(Language.GetTextValue("Mods.icsf.UI.ResetVisualDefaults"));
 	}
 
 	private void AddToggleButton(float top, string labelKey, Func<bool> getter, Action<bool> setter)
 	{
 		UITextPanel<string> button = new(string.Empty, 0.85f, false);
-		button.Width.Set(300f, 0f);
-		button.Height.Set(34f, 0f);
+		button.Width.Set(420f, 0f);
+		button.Height.Set(30f, 0f);
 		button.HAlign = 0.5f;
 		button.Top.Set(top, 0f);
 		button.OnLeftClick += (_, _) => {
@@ -102,7 +226,76 @@ public class HitboxOverlayUiState : UIState
 		};
 
 		_panel.Append(button);
-		_toggleEntries.Add(new ToggleEntry(button, labelKey, getter));
+		_toggleEntries.Add(new ToggleEntry(button, labelKey, getter, true));
+	}
+
+	private void AddSliderWithLabel(float top, string labelKey, SimpleSlider slider)
+	{
+		UIText label = new(string.Empty, 0.8f);
+		label.Left.Set(16f, 0f);
+		label.Top.Set(top, 0f);
+		_panel.Append(label);
+		_sliderLabelTexts.Add(label);
+
+		slider.Left.Set(144f, 0f);
+		slider.Top.Set(top + 2f, 0f);
+		slider.Width.Set(300f, 0f);
+		slider.Height.Set(20f, 0f);
+		_panel.Append(slider);
+		_sliders.Add(slider);
+	}
+
+	private void ApplySelectedColorFromSliders()
+	{
+		Color color = new(
+			(byte)Math.Clamp((int)MathF.Round(_redSlider.Value), 0, 255),
+			(byte)Math.Clamp((int)MathF.Round(_greenSlider.Value), 0, 255),
+			(byte)Math.Clamp((int)MathF.Round(_blueSlider.Value), 0, 255)
+		);
+		SetSelectedColor(color);
+		RefreshText();
+	}
+
+	private Color GetSelectedColor()
+	{
+		return _selectedColorTarget switch {
+			ColorTarget.HostileNpc => HitboxOverlaySystem.HostileNpcHitboxColor,
+			ColorTarget.HostileProjectile => HitboxOverlaySystem.HostileProjectileHitboxColor,
+			ColorTarget.Player => HitboxOverlaySystem.PlayerHitboxColor,
+			_ => HitboxOverlaySystem.HostileNpcHitboxColor
+		};
+	}
+
+	private void SetSelectedColor(Color color)
+	{
+		switch (_selectedColorTarget) {
+			case ColorTarget.HostileNpc:
+				HitboxOverlaySystem.HostileNpcHitboxColor = color;
+				break;
+			case ColorTarget.HostileProjectile:
+				HitboxOverlaySystem.HostileProjectileHitboxColor = color;
+				break;
+			case ColorTarget.Player:
+				HitboxOverlaySystem.PlayerHitboxColor = color;
+				break;
+		}
+	}
+
+	private static string GetColorTargetTextKey(ColorTarget target)
+	{
+		return target switch {
+			ColorTarget.HostileNpc => "Mods.icsf.UI.HostileNpc",
+			ColorTarget.HostileProjectile => "Mods.icsf.UI.HostileProjectile",
+			ColorTarget.Player => "Mods.icsf.UI.Player",
+			_ => "Mods.icsf.UI.HostileNpc"
+		};
+	}
+
+	private enum ColorTarget
+	{
+		HostileNpc,
+		HostileProjectile,
+		Player
 	}
 
 	private sealed class ToggleEntry
@@ -110,12 +303,14 @@ public class HitboxOverlayUiState : UIState
 		public UITextPanel<string> Button { get; }
 		public string LabelKey { get; }
 		public Func<bool> Getter { get; }
+		public bool IsStatusToggle { get; }
 
-		public ToggleEntry(UITextPanel<string> button, string labelKey, Func<bool> getter)
+		public ToggleEntry(UITextPanel<string> button, string labelKey, Func<bool> getter, bool isStatusToggle)
 		{
 			Button = button;
 			LabelKey = labelKey;
 			Getter = getter;
+			IsStatusToggle = isStatusToggle;
 		}
 	}
 }

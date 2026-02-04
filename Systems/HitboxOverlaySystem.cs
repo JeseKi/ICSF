@@ -8,10 +8,20 @@ namespace icsf.Systems;
 
 public class HitboxOverlaySystem : ModSystem
 {
-	private const int LineThicknessInScreenPixels = 2;
+	public static readonly Color DefaultHostileNpcHitboxColor = Color.IndianRed;
+	public static readonly Color DefaultHostileProjectileHitboxColor = Color.OrangeRed;
+	public static readonly Color DefaultPlayerHitboxColor = Color.LimeGreen;
+	public const int DefaultLineThicknessInScreenPixels = 2;
+	public const bool DefaultFillRectangles = false;
+
 	public static bool ShowHostileNpcHitboxes { get; set; } = true;
 	public static bool ShowHostileProjectileHitboxes { get; set; } = true;
 	public static bool ShowPlayerHitbox { get; set; } = true;
+	public static Color HostileNpcHitboxColor { get; set; } = DefaultHostileNpcHitboxColor;
+	public static Color HostileProjectileHitboxColor { get; set; } = DefaultHostileProjectileHitboxColor;
+	public static Color PlayerHitboxColor { get; set; } = DefaultPlayerHitboxColor;
+	public static int LineThicknessInScreenPixels { get; set; } = DefaultLineThicknessInScreenPixels;
+	public static bool FillRectangles { get; set; } = DefaultFillRectangles;
 
 	public override void PostDrawInterface(SpriteBatch spriteBatch)
 	{
@@ -32,6 +42,15 @@ public class HitboxOverlaySystem : ModSystem
 		}
 	}
 
+	public static void ResetVisualSettings()
+	{
+		HostileNpcHitboxColor = DefaultHostileNpcHitboxColor;
+		HostileProjectileHitboxColor = DefaultHostileProjectileHitboxColor;
+		PlayerHitboxColor = DefaultPlayerHitboxColor;
+		LineThicknessInScreenPixels = DefaultLineThicknessInScreenPixels;
+		FillRectangles = DefaultFillRectangles;
+	}
+
 	private static void DrawEnemyNpcHitboxes(SpriteBatch spriteBatch)
 	{
 		for (int i = 0; i < Main.maxNPCs; i++) {
@@ -40,7 +59,7 @@ public class HitboxOverlaySystem : ModSystem
 				continue;
 			}
 
-			DrawWorldRectangle(spriteBatch, npc.Hitbox, Color.IndianRed);
+			DrawWorldRectangle(spriteBatch, npc.Hitbox, HostileNpcHitboxColor);
 		}
 	}
 
@@ -52,7 +71,7 @@ public class HitboxOverlaySystem : ModSystem
 				continue;
 			}
 
-			DrawWorldRectangle(spriteBatch, projectile.Hitbox, Color.OrangeRed);
+			DrawWorldRectangle(spriteBatch, projectile.Hitbox, HostileProjectileHitboxColor);
 		}
 	}
 
@@ -63,7 +82,7 @@ public class HitboxOverlaySystem : ModSystem
 			return;
 		}
 
-		DrawWorldRectangle(spriteBatch, player.Hitbox, Color.LimeGreen);
+		DrawWorldRectangle(spriteBatch, player.Hitbox, PlayerHitboxColor);
 	}
 
 	private static void DrawWorldRectangle(SpriteBatch spriteBatch, Rectangle worldRectangle, Color color)
@@ -92,6 +111,10 @@ public class HitboxOverlaySystem : ModSystem
 	{
 		Texture2D pixel = TextureAssets.MagicPixel.Value;
 		int lineThickness = System.Math.Max(1, (int)System.MathF.Round(LineThicknessInScreenPixels / Main.UIScale));
+
+		if (FillRectangles) {
+			spriteBatch.Draw(pixel, rectangle, color * 0.24f);
+		}
 
 		spriteBatch.Draw(pixel, new Rectangle(rectangle.Left, rectangle.Top, rectangle.Width, lineThickness), color);
 		spriteBatch.Draw(pixel, new Rectangle(rectangle.Left, rectangle.Bottom - lineThickness, rectangle.Width, lineThickness), color);

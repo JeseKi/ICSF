@@ -10,6 +10,15 @@ UI: {
 	HostileNpc: 敌对 NPC
 	HostileProjectile: 敌对投射物
 	Player: 玩家
+	EditingTarget: 当前调色对象：{0}
+	ChangeEditedTarget: 切换调色对象
+	ColorValue: 颜色 R:{0} G:{1} B:{2}
+	Red: 红
+	Green: 绿
+	Blue: 蓝
+	LineThickness: 线条粗细
+	FilledRectangle: 实心矩形
+	ResetVisualDefaults: 恢复默认显示设置
 	ToggleOn: 开
 	ToggleOff: 关
 	Close: 关闭
